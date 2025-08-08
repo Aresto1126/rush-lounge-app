@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rush Lounge 経営管理システム</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍸</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🍸 Rush Lounge 経営管理システム</h1>
+            
+            <!-- 共有状態表示 -->
+            <div class="store-connection">
+                <div class="connection-status">
+                    <div id="connection-indicator" class="indicator offline">
+                        <span class="indicator-dot"></span>
+                        <span id="connection-text">接続中...</span>
+                    </div>
+                    <div class="store-info">
+                        <span id="online-users">接続中: 1人</span>
+                    </div>
+                </div>
+            </div>
+            
+            <nav>
+                <div class="nav-tabs">
+                    <button class="nav-tab active" data-tab="attendance">出勤確認</button>
+                    <button class="nav-tab" data-tab="daily-menu">日替わりメニュー</button>
+                    <button class="nav-tab" data-tab="regular-menu">その他メニュー</button>
+                    <button class="nav-tab" data-tab="other-revenue">その他収益</button>
+                    <button class="nav-tab" data-tab="sales-summary">売上一覧</button>
+                    <button class="nav-tab" data-tab="financial">収支表</button>
+                    <button class="nav-tab" data-tab="vault">店舗金庫</button>
+                    <button class="nav-tab" data-tab="weekly-attendance">週間出勤統計</button>
+                    <button class="nav-tab" data-tab="course-product">コース・商品管理</button>
+                    <button class="nav-tab" data-tab="data-import">データ管理</button>
+                    <button class="nav-tab" data-tab="version-info">バージョン情報</button>
+                </div>
+            </nav>
+        </header>
+
+        <main>
+            <!-- 出勤確認 -->
+            <section id="attendance" class="tab-content active">
+                <div class="section-header">
+                    <h2>📋 出勤確認</h2>
+                    <p>カレンダーから直接出勤記録を管理</p>
+                </div>
+                
+                <div class="card">
+                    <h3>📅 出勤カレンダー</h3>
+                    <div class="calendar-navigation">
+                        <button id="prev-month" class="btn btn-secondary">◀ 前月</button>
+                        <span id="current-month-year" class="calendar-month-display"></span>
+                        <button id="next-month" class="btn btn-secondary">次月 ▶</button>
+                    </div>
+                    <div id="attendance-calendar" class="attendance-calendar"></div>
+                    <div class="calendar-legend">
+                        <div class="legend-item">
+                            <span class="legend-color no-attendance"></span>未出勤
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color has-attendance"></span>出勤あり
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color multiple-attendance"></span>複数出勤
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>📋 選択日の出勤管理</h3>
+                    <div id="selected-date-details" class="attendance-details">
+                        <p>カレンダーから日付を選択すると、その日の出勤管理画面が表示されます</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 日替わりメニュー -->
+            <section id="daily-menu" class="tab-content">
+                <div class="section-header">
+                    <h2>🍽️ 日替わりメニュー管理</h2>
+                    <p>日替わりメニューの商品設定と売上記録</p>
+                </div>
+                
+                <!-- 日替わりメニュー設定 -->
+                <div class="card">
+                    <h3>📋 日替わりメニュー設定</h3>
+                    <form id="daily-menu-config-form">
+                        <div class="form-group">
+                            <label for="config-date">設定日:</label>
+                            <input type="date" id="config-date" required>
+                        </div>
+                        <div class="daily-items-container">
+                            <div class="form-group">
+                                <label for="daily-item-1">1品目 (カクテル):</label>
+                                <select id="daily-item-1" required>
+                                    <option value="">カクテルを選択してください</option>
+                                    <option value="Tropic Whisper">Tropic Whisper</option>
+                                    <option value="Scarlet Kiss">Scarlet Kiss</option>
+                                    <option value="Noir Berry">Noir Berry</option>
+                                    <option value="Rouge Oriental">Rouge Oriental</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="daily-item-2">2品目 (料理):</label>
+                                <select id="daily-item-2" required>
+                                    <option value="">料理を選択してください</option>
+                                    <option value="Night Vegigratin">Night Vegigratin</option>
+                                    <option value="Five Colours Plate">Five Colours Plate</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="daily-item-3">3品目 (カクテル):</label>
+                                <select id="daily-item-3" required>
+                                    <option value="">カクテルを選択してください</option>
+                                    <option value="Tropic Whisper">Tropic Whisper</option>
+                                    <option value="Scarlet Kiss">Scarlet Kiss</option>
+                                    <option value="Noir Berry">Noir Berry</option>
+                                    <option value="Rouge Oriental">Rouge Oriental</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="config-price">セット価格 (円):</label>
+                            <input type="number" id="config-price" value="25000" readonly>
+                            <div class="price-info" id="daily-menu-price-info">※ 価格はコース管理で設定された値が自動反映されます</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">日替わりメニュー設定</button>
+                    </form>
+                </div>
+
+                <!-- 現在の日替わりメニュー表示 -->
+                <div class="card">
+                    <h3>📅 今日の日替わりメニュー</h3>
+                    <div id="current-daily-menu" class="current-daily-display"></div>
+                </div>
+
+                <!-- 売上記録 -->
+                <div class="card">
+                    <h3>💰 日替わりメニュー売上記録</h3>
+                    <form id="daily-menu-form">
+                        <div class="form-group">
+                            <label for="daily-date">提供日:</label>
+                            <input type="date" id="daily-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="daily-quantity">提供数:</label>
+                            <input type="number" id="daily-quantity" min="1" value="1" required>
+                        </div>
+                        <div class="daily-menu-info">
+                            <p>※ 提供日の日替わりメニューが自動で適用されます</p>
+                        </div>
+                        <button type="submit" class="btn btn-primary">売上記録</button>
+                    </form>
+                </div>
+
+                <!-- Discord Bot連携 (将来実装) -->
+                <div class="card">
+                    <h3>🤖 Discord Bot連携 (準備中)</h3>
+                    <div class="bot-integration">
+                        <p>Discord Botからの自動メニュー取得機能を準備中です。</p>
+                        <div class="form-group">
+                            <label for="bot-webhook">Webhook URL:</label>
+                            <input type="url" id="bot-webhook" placeholder="Discord Bot WebhookのURL (将来実装)" disabled>
+                        </div>
+                        <button type="button" class="btn btn-secondary" disabled>Bot連携設定 (準備中)</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>📈 日替わりメニュー売上履歴</h3>
+                    <div id="daily-menu-history" class="sales-history"></div>
+                </div>
+
+                <div class="card">
+                    <h3>📋 日替わりメニュー設定履歴</h3>
+                    <div id="daily-menu-configs" class="config-history"></div>
+                </div>
+            </section>
+
+            <!-- その他メニュー -->
+            <section id="regular-menu" class="tab-content">
+                <div class="section-header">
+                    <h2>🍸 その他メニュー売上</h2>
+                    <p>Simple, Chill, Special メニュー提供時に記入</p>
+                </div>
+
+
+                <!-- 売上記録フォーム -->
+                <div class="card">
+                    <h3>💰 その他メニュー売上記録</h3>
+                    <form id="regular-menu-form">
+                        <div class="form-group">
+                            <label for="regular-date">提供日:</label>
+                            <input type="date" id="regular-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="menu-type">メニュータイプ:</label>
+                            <select id="menu-type" required onchange="rushLounge.updateMenuPrice(this.value)">
+                                <option value="">選択してください</option>
+                                <option value="simple">Simple Menu - ¥30,000 (Tropic Whisper + Night Vegigratin + Noir Berry)</option>
+                                <option value="chill">Chill Menu - ¥40,000 (Noir Berry + Night Vegigratin + Scarlet Kiss)</option>
+                                <option value="special">Special Menu - ¥50,000 (Rouge Oriental + Five Colours Plate + Tropic Whisper)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="regular-quantity">提供数:</label>
+                            <input type="number" id="regular-quantity" min="1" value="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="regular-price">単価 (円):</label>
+                            <input type="number" id="regular-price" readonly>
+                            <div class="price-info">※ メニュータイプ選択で自動設定されます</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">売上記録</button>
+                    </form>
+                </div>
+                <div class="card">
+                    <h3>📊 その他メニュー統計</h3>
+                    <div id="regular-menu-stats" class="menu-stats-display">
+                        <div class="stats-summary">
+                            <div class="stat-item">
+                                <span class="stat-label">総件数:</span>
+                                <span class="stat-value">0件</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">総売上:</span>
+                                <span class="stat-value">¥0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>📈 その他メニュー売上履歴</h3>
+                    <div id="regular-menu-history" class="sales-history"></div>
+                </div>
+            </section>
+
+            <!-- その他収益 -->
+            <section id="other-revenue" class="tab-content">
+                <div class="section-header">
+                    <h2>💰 その他収益</h2>
+                    <p>移動販売等の収益発生時に記入</p>
+                </div>
+                <div class="card">
+                    <form id="other-revenue-form">
+                        <div class="form-group">
+                            <label for="revenue-date">収益日:</label>
+                            <input type="date" id="revenue-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="revenue-type">収益種別:</label>
+                            <select id="revenue-type" required>
+                                <option value="">選択してください</option>
+                                <option value="mobile-sales">移動販売</option>
+                                <option value="event">イベント</option>
+                                <option value="catering">ケータリング</option>
+                                <option value="other">その他</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="revenue-description">内容詳細:</label>
+                            <input type="text" id="revenue-description" placeholder="詳細を入力（任意）">
+                        </div>
+                        <div class="form-group">
+                            <label for="revenue-amount">収益額 (円):</label>
+                            <input type="number" id="revenue-amount" min="0" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">収益記録</button>
+                    </form>
+                </div>
+                <div class="card">
+                    <h3>📈 その他収益履歴</h3>
+                    <div class="revenue-actions" style="margin-bottom: 1rem;">
+                        <button class="btn btn-warning" onclick="rushLounge.removeZeroAmountOtherRevenue()">
+                            🗑️ 0円項目を削除
+                        </button>
+                    </div>
+                    <div id="other-revenue-history" class="sales-history"></div>
+                </div>
+            </section>
+
+            <!-- 売上一覧 -->
+            <section id="sales-summary" class="tab-content">
+                <div class="section-header">
+                    <h2>📊 売上一覧統合</h2>
+                    <p>各メニュー、その他売上を一覧化</p>
+                </div>
+                <div class="card">
+                    <div class="filter-section">
+                        <div class="form-group">
+                            <label for="summary-start-date">開始日:</label>
+                            <input type="date" id="summary-start-date">
+                        </div>
+                        <div class="form-group">
+                            <label for="summary-end-date">終了日:</label>
+                            <input type="date" id="summary-end-date">
+                        </div>
+                        <button id="filter-sales" class="btn btn-secondary">絞り込み</button>
+                        <button id="reset-filter" class="btn btn-secondary">リセット</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="summary-stats">
+                        <div class="stat-card">
+                            <h4>総売上</h4>
+                            <div id="total-sales" class="stat-value">¥0</div>
+                        </div>
+                        <div class="stat-card">
+                            <h4>日替わりメニュー</h4>
+                            <div id="daily-total" class="stat-value">¥0</div>
+                        </div>
+                        <div class="stat-card">
+                            <h4>その他メニュー</h4>
+                            <div id="regular-total" class="stat-value">¥0</div>
+                        </div>
+                        <div class="stat-card">
+                            <h4>その他収益</h4>
+                            <div id="other-total" class="stat-value">¥0</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>詳細売上履歴</h3>
+                    <div id="all-sales-history" class="sales-history"></div>
+                </div>
+            </section>
+
+            <!-- 収支表 -->
+            <section id="financial" class="tab-content">
+                <div class="section-header">
+                    <h2>💹 収支表</h2>
+                    <p>食材の仕入れ時に記入、その他情報自動計算</p>
+                </div>
+                
+                <div class="alert alert-info">
+                    <strong>💡 金庫連動機能：</strong> 支出を記録すると、金庫から同額が自動的に出金されます。スプレッドシートと同じ仕様です。
+                </div>
+                <div class="card">
+                    <form id="expense-form">
+                        <div class="form-group">
+                            <label for="expense-date">仕入れ日:</label>
+                            <input type="date" id="expense-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="expense-category">仕入れ種別:</label>
+                            <select id="expense-category" required>
+                                <option value="">選択してください</option>
+                                <option value="ingredients">食材</option>
+                                <option value="alcohol">アルコール</option>
+                                <option value="supplies">備品</option>
+                                <option value="other">その他</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="expense-description">内容:</label>
+                            <input type="text" id="expense-description" placeholder="詳細を入力（任意）">
+                        </div>
+                        <div class="form-group">
+                            <label for="expense-amount">金額 (円):</label>
+                            <input type="number" id="expense-amount" min="0" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">支出記録</button>
+                    </form>
+                </div>
+                <div class="card">
+                    <div class="financial-stats">
+                        <div class="stat-card">
+                            <h4>総収入</h4>
+                            <div id="total-income" class="stat-value">¥0</div>
+                        </div>
+                        <div class="stat-card">
+                            <h4>総支出</h4>
+                            <div id="total-expenses" class="stat-value">¥0</div>
+                        </div>
+                        <div class="stat-card">
+                            <h4>純利益</h4>
+                            <div id="net-profit" class="stat-value">¥0</div>
+                        </div>
+                        <div class="stat-card">
+                            <h4>利益率</h4>
+                            <div id="profit-margin" class="stat-value">0%</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>支出履歴</h3>
+                    <div id="expense-history" class="expense-history"></div>
+                </div>
+            </section>
+
+            <!-- 店舗金庫 -->
+            <section id="vault" class="tab-content">
+                <div class="section-header">
+                    <h2>🏦 店舗金庫</h2>
+                    <p>売上の度にオーナーの財布から店舗に貯金</p>
+                </div>
+                <div class="card">
+                    <div class="vault-balance">
+                        <h3>現在の金庫残高</h3>
+                        <div id="vault-balance" class="balance-display">¥0</div>
+                    </div>
+                </div>
+
+                <!-- 貯金予定 -->
+                <div class="card">
+                    <div class="savings-pending">
+                        <h3>💰 貯金予定（売上の50%）</h3>
+                        <div id="pending-savings" class="balance-display pending">¥0</div>
+                        <button id="deposit-pending" class="btn btn-primary" onclick="rushLounge.depositPendingSavings()">予定額を貯金</button>
+                        <button id="clear-pending" class="btn btn-secondary" onclick="rushLounge.clearPendingSavings()">貯金予定をクリア</button>
+                    </div>
+                </div>
+
+                <!-- 金庫残高調整 -->
+                <div class="card">
+                    <h3>⚙️ 金庫残高調整</h3>
+                    <div class="balance-adjustment">
+                        <div class="form-group">
+                            <label for="target-balance">正しい金庫残高 (円):</label>
+                            <input type="number" id="target-balance" min="0" placeholder="25352500">
+                            <div class="adjustment-info">※ スプレッドシートと合わせる場合に使用</div>
+                        </div>
+                        <button class="btn btn-primary" onclick="rushLounge.adjustVaultBalance()">残高を調整</button>
+                        <button class="btn btn-secondary" onclick="rushLounge.resetVaultData()">金庫データをリセット</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>🏦 手動入出金</h3>
+                    <form id="vault-form">
+                        <div class="form-group">
+                            <label for="vault-date">取引日:</label>
+                            <input type="date" id="vault-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="transaction-type">取引種別:</label>
+                            <select id="transaction-type" required>
+                                <option value="">選択してください</option>
+                                <option value="deposit">入金（売上貯金）</option>
+                                <option value="withdrawal">出金（支払い等）</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="vault-amount">金額 (円):</label>
+                            <input type="number" id="vault-amount" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="vault-description">取引内容:</label>
+                            <input type="text" id="vault-description" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">取引記録</button>
+                    </form>
+                </div>
+                <div class="card">
+                    <h3>取引履歴</h3>
+                    <div id="vault-history" class="vault-history"></div>
+                </div>
+            </section>
+
+            <!-- 週間出勤統計 -->
+            <section id="weekly-attendance" class="tab-content">
+                <div class="section-header">
+                    <h2>📅 週間出勤統計</h2>
+                    <p>月曜日～日曜日の週間出勤状況とボーナス計算（自動更新）</p>
+                </div>
+
+                <div class="card">
+                    <h3>📅 週間出勤カレンダー</h3>
+                    <div class="weekly-calendar-navigation">
+                        <button id="prev-week" class="btn btn-secondary">◀ 前週</button>
+                        <span id="current-week-range" class="weekly-range-display"></span>
+                        <button id="next-week" class="btn btn-secondary">次週 ▶</button>
+                    </div>
+                    <div id="weekly-attendance-calendar" class="weekly-attendance-calendar"></div>
+                    <div class="weekly-calendar-legend">
+                        <div class="legend-item">
+                            <span class="legend-color no-attendance"></span>未出勤
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color has-attendance"></span>出勤あり
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color multiple-attendance"></span>複数出勤
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>ボーナス計算・支給管理</h3>
+                    <div class="bonus-payment-info">
+                        <div class="payment-schedule">
+                            <h4>💰 ボーナス支給スケジュール</h4>
+                            <p><strong>支給日:</strong> 毎週月曜日</p>
+                            <p><strong>計算期間:</strong> 前週月曜日～日曜日の出勤分</p>
+                            <p><strong>支給額:</strong> 出勤日数 × ¥300,000</p>
+                        </div>
+                    </div>
+                    <div id="bonus-calculation" class="bonus-calculation"></div>
+                </div>
+
+                <div class="card">
+                    <h3>🔧 出勤データ管理</h3>
+                    <div class="alert alert-warning">
+                        <strong>⚠️ 注意:</strong> 出勤確認システムでは1日1回までの記録制限を実装しました。<br>
+                        スマホ版での重複発生やデータ同期による問題を解決するため、既存の重複データを削除することができます。
+                    </div>
+                    <div class="attendance-management-actions">
+                        <button class="btn btn-warning" onclick="removeAttendanceDuplicates()">
+                            🗑️ 重複出勤記録を削除
+                        </button>
+                        <p class="action-description">
+                            同じ日に複数回記録された出勤データを1回のみに統一します。削除前に詳細を確認できます。
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- コース・商品管理 -->
+            <section id="course-product" class="tab-content">
+                <div class="section-header">
+                    <h2>📋 コース・商品管理</h2>
+                    <p>コースや商品の登録・管理・編集</p>
+                </div>
+
+                <!-- サブタブナビゲーション -->
+                <div class="sub-nav">
+                    <button class="sub-nav-tab active" data-subtab="new-course">新規コース</button>
+                    <button class="sub-nav-tab" data-subtab="new-product">新規商品</button>
+                    <button class="sub-nav-tab" data-subtab="new-material">新規素材</button>
+                    <button class="sub-nav-tab" data-subtab="manage-list">一覧管理</button>
+                </div>
+
+                <!-- 新規コース -->
+                <div id="new-course" class="sub-tab-content active">
+                    <div class="card">
+                        <h3>🍽️ 新規コース登録</h3>
+                        <form id="course-form">
+                            <div class="form-group">
+                                <label for="course-name">コース名:</label>
+                                <input type="text" id="course-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="course-price">販売価格 (円):</label>
+                                <input type="number" id="course-price" min="0" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>構成商品選択（3品）:</label>
+                                <div id="course-product-selector" class="course-product-selector">
+                                    <div class="product-selection-item">
+                                        <label>1品目:</label>
+                                        <select id="course-product-1" onchange="rushLounge.updateCourseCalculation()">
+                                            <option value="">商品を選択してください</option>
+                                            <optgroup label="登録商品">
+                                                <!-- 登録済み商品がここに動的に追加されます -->
+                                            </optgroup>
+                                            <optgroup label="日替わりメニュー">
+                                                <option value="daily-menu">日替わりメニュー（設定日の商品構成）</option>
+                                            </optgroup>
+                                        </select>
+                                    </div>
+                                    <div class="product-selection-item">
+                                        <label>2品目:</label>
+                                        <select id="course-product-2" onchange="rushLounge.updateCourseCalculation()">
+                                            <option value="">商品を選択してください</option>
+                                            <optgroup label="登録商品">
+                                                <!-- 登録済み商品がここに動的に追加されます -->
+                                            </optgroup>
+                                            <optgroup label="日替わりメニュー">
+                                                <option value="daily-menu">日替わりメニュー（設定日の商品構成）</option>
+                                            </optgroup>
+                                        </select>
+                                    </div>
+                                    <div class="product-selection-item">
+                                        <label>3品目:</label>
+                                        <select id="course-product-3" onchange="rushLounge.updateCourseCalculation()">
+                                            <option value="">商品を選択してください</option>
+                                            <optgroup label="登録商品">
+                                                <!-- 登録済み商品がここに動的に追加されます -->
+                                            </optgroup>
+                                            <optgroup label="日替わりメニュー">
+                                                <option value="daily-menu">日替わりメニュー（設定日の商品構成）</option>
+                                            </optgroup>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="course-calculation-summary">
+                                    <div><strong>選択された商品:</strong> <span id="selected-course-products">なし</span></div>
+                                    <div><strong>自動計算原価:</strong> <span id="calculated-course-cost">¥0</span></div>
+                                    <div><strong>予想利益:</strong> <span id="estimated-course-profit">¥0</span></div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="course-cost">原価 (円):</label>
+                                <input type="number" id="course-cost" readonly placeholder="商品選択で自動計算">
+                                <small>※ 選択した商品の原価合計が自動設定されます</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="course-description">コース内容:</label>
+                                <textarea id="course-description" rows="3" readonly placeholder="選択した商品から自動生成"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="course-ingredients">使用食材:</label>
+                                <textarea id="course-ingredients" rows="4" readonly placeholder="選択した商品の食材から自動生成"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">コース登録</button>
+                        </form>
+                    </div>
+                    <div class="card">
+                        <h3>登録コース一覧</h3>
+                        <div id="course-list-display" class="course-list"></div>
+                    </div>
+                </div>
+
+                <!-- 新規商品 -->
+                <div id="new-product" class="sub-tab-content">
+                    <div class="card">
+                        <h3>🥂 新規商品登録</h3>
+                        <form id="product-form">
+                            <div class="form-group">
+                                <label for="product-name">商品名:</label>
+                                <input type="text" id="product-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="product-category">商品カテゴリ:</label>
+                                <select id="product-category" required>
+                                    <option value="">選択してください</option>
+                                    <option value="cocktail">カクテル</option>
+                                    <option value="dish">料理</option>
+                                    <option value="other">その他</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="product-price">移動販売価格 (円):</label>
+                                <input type="number" id="product-price" value="10000" readonly>
+                                <small>※ 移動販売では全商品一律¥10,000で取引されます</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="product-description">商品説明:</label>
+                                <textarea id="product-description" rows="4" placeholder="商品の説明（任意）"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>必要素材選択:</label>
+                                <div id="material-selector" class="material-selector">
+                                    <!-- 素材選択UI -->
+                                </div>
+                                <div class="material-summary">
+                                    <div><strong>選択された素材:</strong> <span id="selected-materials-text">なし</span></div>
+                                    <div><strong>総素材コスト:</strong> <span id="total-material-cost">¥0</span></div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="product-craft-yield">完成数:</label>
+                                <input type="number" id="product-craft-yield" min="1" value="6" placeholder="1回のクラフトで作れる数" onchange="rushLounge.calculateProductCost()">
+                            </div>
+                            <div class="form-group">
+                                <label for="product-cost">自動計算原価 (円):</label>
+                                <input type="number" id="product-cost" readonly placeholder="素材コストと完成数から自動計算">
+                                <small>※ 総素材コスト ÷ 完成数 で自動計算されます</small>
+                            </div>
+                            <button type="submit" class="btn btn-primary">商品登録</button>
+                        </form>
+                    </div>
+                    <div class="card">
+                        <h3>登録商品一覧</h3>
+                        <div id="product-list-display" class="product-list"></div>
+                    </div>
+                </div>
+
+                <!-- 新規素材 -->
+                <div id="new-material" class="sub-tab-content">
+                    <div class="card">
+                        <h3>🥬 新規素材登録</h3>
+                        <form id="material-form">
+                            <div class="form-group">
+                                <label for="material-name">素材名:</label>
+                                <input type="text" id="material-name" required placeholder="例: トマト">
+                            </div>
+                            <div class="form-group">
+                                <label for="material-price">仕入れ価格 (円):</label>
+                                <input type="number" id="material-price" min="0" required placeholder="例: 5000">
+                                <small>※ 1つあたりの仕入れ価格を入力してください</small>
+                            </div>
+                            <button type="submit" class="btn btn-primary">素材登録</button>
+                        </form>
+                    </div>
+                    <div class="card">
+                        <h3>📋 登録済み素材一覧</h3>
+                        <div id="material-list-display" class="material-list">
+                            <div class="alert alert-info">
+                                <p>登録済み素材がここに表示されます</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 一覧管理 -->
+                <div id="manage-list" class="sub-tab-content">
+                    <div class="card">
+                        <h3>🍽️ コース管理</h3>
+                        <div id="course-management-list" class="course-list"></div>
+                    </div>
+                    <div class="card">
+                        <h3>🥂 商品管理</h3>
+                        <div id="product-management-list" class="product-list"></div>
+                    </div>
+                    <div class="card">
+                        <h3>🥬 素材管理</h3>
+                        <div id="material-management-list" class="material-list"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- データ管理 -->
+            <section id="data-import" class="tab-content">
+                <div class="section-header">
+                    <h2>📊 データ管理</h2>
+                    <p>スプレッドシートからのデータインポート・エクスポート</p>
+                </div>
+
+                <!-- GitHub Pages デプロイ管理 -->
+                <div class="card">
+                    <h3>🌐 GitHub Pages デプロイ管理</h3>
+                    <div class="alert alert-info">
+                        <strong>💡 初期データ変更時の手順：</strong>
+                        <ol>
+                            <li>従業員追加・商品変更・設定変更などを実施</li>
+                            <li>下記のリンクからGitHubリポジトリにアクセス</li>
+                            <li>最新の4ファイル（index.html, script.js, style.css, README.md）を再アップロード</li>
+                            <li>5-10分後に変更が公開URLに反映されます</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="deploy-links">
+                        <div class="deploy-section">
+                            <h4>🔗 GitHub リポジトリへのアクセス</h4>
+                            <p>初期データを変更した場合は、以下のリンクからファイルを更新してください：</p>
+                            <div class="form-group">
+                                <label for="github-repo-url">GitHubリポジトリURL:</label>
+                                <input type="url" id="github-repo-url" placeholder="https://github.com/ユーザー名/リポジトリ名" style="width: 100%; margin-bottom: 0.5rem;">
+                                <small>例: https://github.com/username/rush-lounge-app</small>
+                            </div>
+                            <div class="deploy-actions">
+                                <button class="btn btn-primary" onclick="openGitHubRepo()">
+                                    📁 GitHubリポジトリを開く
+                                </button>
+                                <button class="btn btn-secondary" onclick="saveGitHubUrl()">
+                                    💾 URLを保存
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="deploy-section">
+                            <h4>🌍 公開ページURL</h4>
+                            <p>現在公開中のページ（従業員共有用）：</p>
+                            <div class="form-group">
+                                <label for="github-pages-url">GitHub Pages URL:</label>
+                                <input type="url" id="github-pages-url" placeholder="https://ユーザー名.github.io/リポジトリ名" style="width: 100%; margin-bottom: 0.5rem;">
+                                <small>例: https://username.github.io/rush-lounge-app</small>
+                            </div>
+                            <div class="deploy-actions">
+                                <button class="btn btn-success" onclick="openPublicPage()">
+                                    🌐 公開ページを開く
+                                </button>
+                                <button class="btn btn-secondary" onclick="copyPublicUrl()">
+                                    📋 URLをコピー
+                                </button>
+                                <button class="btn btn-secondary" onclick="savePublicUrl()">
+                                    💾 URLを保存
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="deploy-section">
+                            <h4>📋 クイックデプロイ手順</h4>
+                            <div class="quick-deploy-steps">
+                                <div class="step-item">
+                                    <span class="step-number">1</span>
+                                    <div class="step-content">
+                                        <strong>ファイルダウンロード</strong>
+                                        <p>現在の設定でファイルをダウンロード</p>
+                                        <button class="btn btn-outline-primary btn-sm" onclick="rushLounge.downloadAllFiles()">
+                                            📦 全ファイルダウンロード
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="step-item">
+                                    <span class="step-number">2</span>
+                                    <div class="step-content">
+                                        <strong>GitHubにアップロード</strong>
+                                        <p>GitHubリポジトリでファイルを置き換え</p>
+                                        <button class="btn btn-outline-primary btn-sm" onclick="openGitHubUpload()">
+                                            🔄 GitHub アップロードページを開く
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="step-item">
+                                    <span class="step-number">3</span>
+                                    <div class="step-content">
+                                        <strong>デプロイ完了確認</strong>
+                                        <p>5-10分後に公開ページで確認</p>
+                                        <button class="btn btn-outline-success btn-sm" onclick="openPublicPage()">
+                                            ✅ 公開ページ確認
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- データインポート -->
+                <div class="card">
+                    <h3>📥 スプレッドシートデータインポート</h3>
+                    <div class="alert alert-warning" style="margin-bottom: 1rem;">
+                        <strong>🆘 緊急バックアップ：</strong>
+                        <p style="margin: 0.5rem 0;">インポート前に現在のデータをバックアップすることを強く推奨します</p>
+                        <div style="margin-top: 1rem;">
+                            <button class="btn btn-warning" onclick="rushLounge.createEmergencyBackup()" style="margin-right: 1rem;">
+                                🆘 今すぐバックアップ作成
+                            </button>
+                            <label class="btn btn-secondary" style="margin: 0;">
+                                📁 バックアップから復元
+                                <input type="file" accept=".json" onchange="rushLounge.restoreFromBackup(event)" style="display: none;">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info" style="margin-bottom: 1rem;">
+                        <strong>🔧 重複データ整理：</strong>
+                        <p style="margin: 0.5rem 0;">重複チェックが無効化されているため、インポート後に重複データが発生する可能性があります。以下で削除できます</p>
+                        <div style="margin-top: 1rem;">
+                            <button class="btn btn-primary" onclick="rushLounge.removeAllDuplicates()" style="margin-right: 1rem;">
+                                🗑️ 全データ重複除去
+                            </button>
+                            <button class="btn btn-outline-primary" onclick="rushLounge.removeDuplicateData('attendance')" style="margin-right: 0.5rem; font-size: 0.8rem;">出勤</button>
+                            <button class="btn btn-outline-primary" onclick="rushLounge.removeDuplicateData('daily-menu')" style="margin-right: 0.5rem; font-size: 0.8rem;">日替わり</button>
+                            <button class="btn btn-outline-primary" onclick="rushLounge.removeDuplicateData('regular-menu')" style="margin-right: 0.5rem; font-size: 0.8rem;">メニュー</button>
+                            <button class="btn btn-outline-primary" onclick="rushLounge.removeDuplicateData('other-revenue')" style="margin-right: 0.5rem; font-size: 0.8rem;">収益</button>
+                            <button class="btn btn-outline-primary" onclick="rushLounge.removeDuplicateData('expenses')" style="margin-right: 0.5rem; font-size: 0.8rem;">支出</button>
+                            <button class="btn btn-outline-primary" onclick="rushLounge.removeDuplicateData('vault')" style="font-size: 0.8rem;">金庫</button>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <strong>💡 インポート手順：</strong>
+                        <ol>
+                            <li>Googleスプレッドシートで各シートを「ファイル」→「ダウンロード」→「CSV」で保存</li>
+                            <li>以下のボタンでCSVファイルを選択してインポート</li>
+                            <li>**どんな構造のCSVでも自動判定・補完してインポートします**</li>
+                            <li>**重複チェックは無効化されており、すべてのデータが追加されます**</li>
+                        </ol>
+                        <details style="margin-top: 1rem;">
+                            <summary style="cursor: pointer; color: #667eea; font-weight: 600;">📋 対応CSV形式例を表示</summary>
+                            <div style="margin-top: 1rem; font-size: 0.9rem;">
+                                <p><strong>📌 自動対応する項目：</strong></p>
+                                <ul style="margin-left: 1rem;">
+                                    <li>**日付**: 日付、date、提供日、収益日、仕入れ日、取引日、年月日 など</li>
+                                    <li>**従業員**: 従業員、employee、name、従業員名、名前、スタッフ など</li>
+                                    <li>**金額**: 金額、amount、収益額、支出、価格、単価 など</li>
+                                    <li>**数量**: 数量、quantity、提供数、個数 など</li>
+                                    <li>**種別**: 種別、type、タイプ、category、カテゴリ など</li>
+                                    <li>**内容**: 内容、description、説明、詳細、メモ など</li>
+                                </ul>
+                                <p><strong>🔧 自動補完機能：</strong></p>
+                                <ul style="margin-left: 1rem;">
+                                    <li>不足している日付 → 今日の日付を自動設定</li>
+                                    <li>不足している従業員名 → "スタッフ"を自動設定</li>
+                                    <li>不足している金額 → 0円を自動設定</li>
+                                    <li>不足している数量 → 1を自動設定</li>
+                                    <li>メニュータイプ → 名前から自動判定（Simple/Chill/Special）</li>
+                                    <li>入出金種別 → 金額の正負から自動判定</li>
+                                </ul>
+                            </div>
+                        </details>
+                    </div>
+                    
+                    <div class="import-sections">
+                        <div class="import-section">
+                            <h4>👤 出勤確認データ</h4>
+                            <input type="file" id="attendance-import" accept=".csv" style="display: none;">
+                            <button class="btn btn-secondary" onclick="document.getElementById('attendance-import').click()">出勤データCSV選択</button>
+                            <span id="attendance-import-status" class="import-status"></span>
+                        </div>
+                        
+                        <div class="import-section">
+                            <h4>🍽️ 日替わりメニューデータ</h4>
+                            <input type="file" id="daily-menu-import" accept=".csv" style="display: none;">
+                            <button class="btn btn-secondary" onclick="document.getElementById('daily-menu-import').click()">日替わりメニューCSV選択</button>
+                            <span id="daily-menu-import-status" class="import-status"></span>
+                        </div>
+                        
+                        <div class="import-section">
+                            <h4>🍸 その他メニューデータ</h4>
+                            <input type="file" id="regular-menu-import" accept=".csv" style="display: none;">
+                            <button class="btn btn-secondary" onclick="document.getElementById('regular-menu-import').click()">その他メニューCSV選択</button>
+                            <span id="regular-menu-import-status" class="import-status"></span>
+                        </div>
+                        
+                        <div class="import-section">
+                            <h4>💰 その他収益データ</h4>
+                            <input type="file" id="other-revenue-import" accept=".csv" style="display: none;">
+                            <button class="btn btn-secondary" onclick="document.getElementById('other-revenue-import').click()">その他収益CSV選択</button>
+                            <span id="other-revenue-import-status" class="import-status"></span>
+                        </div>
+                        
+                        <div class="import-section">
+                            <h4>💹 収支表データ</h4>
+                            <input type="file" id="expenses-import" accept=".csv" style="display: none;">
+                            <button class="btn btn-secondary" onclick="document.getElementById('expenses-import').click()">収支表CSV選択</button>
+                            <span id="expenses-import-status" class="import-status"></span>
+                        </div>
+                        
+                        <div class="import-section">
+                            <h4>🏦 金庫データ</h4>
+                            <input type="file" id="vault-import" accept=".csv" style="display: none;">
+                            <button class="btn btn-secondary" onclick="document.getElementById('vault-import').click()">金庫データCSV選択</button>
+                            <span id="vault-import-status" class="import-status"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- データエクスポート -->
+                <div class="card">
+                    <h3>📤 データエクスポート</h3>
+                    <p>現在のデータをCSV形式でダウンロードできます。</p>
+                    <div class="export-buttons">
+                        <button class="btn btn-primary" onclick="rushLounge.exportData('attendance')">出勤データ出力</button>
+                        <button class="btn btn-primary" onclick="rushLounge.exportData('dailyMenu')">日替わりメニュー出力</button>
+                        <button class="btn btn-primary" onclick="rushLounge.exportData('regularMenu')">その他メニュー出力</button>
+                        <button class="btn btn-primary" onclick="rushLounge.exportData('otherRevenue')">その他収益出力</button>
+                        <button class="btn btn-primary" onclick="rushLounge.exportData('expenses')">収支表出力</button>
+                        <button class="btn btn-primary" onclick="rushLounge.exportData('vaultTransactions')">金庫データ出力</button>
+                        <button class="btn btn-primary" onclick="rushLounge.exportAllData()">全データ一括出力</button>
+                    </div>
+                </div>
+
+                <!-- データ削除 -->
+                <div class="card">
+                    <h3>🗑️ データ削除</h3>
+                    <div class="alert alert-danger">
+                        <strong>⚠️ 注意：</strong>
+                        <p style="margin: 0.5rem 0;">データ削除は元に戻すことができません。削除前に必ずバックアップを作成してください。</p>
+                        <div style="margin-top: 1rem;">
+                            <button class="btn btn-warning" onclick="rushLounge.createEmergencyBackup()" style="margin-right: 1rem;">
+                                🆘 削除前バックアップ作成
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="data-delete-sections">
+                        <div class="delete-section">
+                            <h4>👤 出勤確認データ</h4>
+                            <p>現在の出勤記録: <span id="attendance-delete-count" class="data-count">0件</span></p>
+                            <button class="btn btn-danger btn-sm" onclick="rushLounge.deleteAllData('attendance')">
+                                🗑️ 出勤データをすべて削除
+                            </button>
+                        </div>
+                        
+                        <div class="delete-section">
+                            <h4>🍽️ 日替わりメニューデータ</h4>
+                            <p>現在のデータ数: <span id="daily-menu-delete-count" class="data-count">0件</span></p>
+                            <button class="btn btn-danger btn-sm" onclick="rushLounge.deleteAllData('daily-menu')">
+                                🗑️ 日替わりメニューをすべて削除
+                            </button>
+                        </div>
+                        
+                        <div class="delete-section">
+                            <h4>🍸 その他メニューデータ</h4>
+                            <p>現在のデータ数: <span id="regular-menu-delete-count" class="data-count">0件</span></p>
+                            <button class="btn btn-danger btn-sm" onclick="rushLounge.deleteAllData('regular-menu')">
+                                🗑️ その他メニューをすべて削除
+                            </button>
+                        </div>
+                        
+                        <div class="delete-section">
+                            <h4>💰 その他収益データ</h4>
+                            <p>現在のデータ数: <span id="other-revenue-delete-count" class="data-count">0件</span></p>
+                            <button class="btn btn-danger btn-sm" onclick="rushLounge.deleteAllData('other-revenue')">
+                                🗑️ その他収益をすべて削除
+                            </button>
+                        </div>
+                        
+                        <div class="delete-section">
+                            <h4>💹 収支表データ</h4>
+                            <p>現在のデータ数: <span id="expenses-delete-count" class="data-count">0件</span></p>
+                            <button class="btn btn-danger btn-sm" onclick="rushLounge.deleteAllData('expenses')">
+                                🗑️ 収支表をすべて削除
+                            </button>
+                        </div>
+                        
+                        <div class="delete-section">
+                            <h4>🏦 金庫データ</h4>
+                            <p>現在のデータ数: <span id="vault-delete-count" class="data-count">0件</span></p>
+                            <button class="btn btn-danger btn-sm" onclick="rushLounge.deleteAllData('vault')">
+                                🗑️ 金庫データをすべて削除
+                            </button>
+                        </div>
+
+                        <div class="delete-section delete-all-section">
+                            <h4>🚨 全データ削除</h4>
+                            <p><strong>すべてのデータを完全に削除します（従業員・商品・コース含む）</strong></p>
+                            <button class="btn btn-danger" onclick="rushLounge.deleteAllSystemData()">
+                                💀 全システムデータを削除
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 同期機能 -->
+                <div class="card">
+                    <h3>🔄 リアルタイム同期機能</h3>
+                    
+                    <!-- Firebase同期（推奨） -->
+                    <div class="alert alert-info" style="margin-bottom: 1rem;">
+                        <h4>🔥 Firebase自動同期（推奨）</h4>
+                        <p><strong>既に実装済み！</strong> 下記の「店舗間データ連携」で自動同期が有効になります。</p>
+                        <p>💡 <strong>設定手順:</strong> Firebase Console でデータベースルールを公開に設定するだけで使用可能です。</p>
+                    </div>
+
+                    <!-- GitHub Gist同期（代替案） -->
+                    <div class="deploy-section">
+                        <h4>🌐 GitHub Gist同期（簡易版）</h4>
+                        <p>Firebase が使用できない場合の代替案（30秒間隔で同期）</p>
+                        
+                        <div class="deploy-actions">
+                            <button class="btn btn-primary" onclick="rushLounge.createDataGist()">
+                                🆕 新規Gist作成（管理者用）
+                            </button>
+                            <button class="btn btn-secondary" onclick="rushLounge.joinGistSync()">
+                                🔗 既存Gistに参加
+                            </button>
+                            <button class="btn btn-danger" onclick="rushLounge.disconnectGistSync()">
+                                ❌ Gist同期無効化
+                            </button>
+                        </div>
+                        
+                        <div class="alert alert-warning" style="margin-top: 1rem; font-size: 0.9rem;">
+                            <strong>📋 使用手順:</strong>
+                            <ol style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                                <li>管理者が「新規Gist作成」をクリック</li>
+                                <li>GitHub Personal Access Token を入力</li>
+                                <li>生成されたGist IDを他プレイヤーに共有</li>
+                                <li>他プレイヤーは「既存Gistに参加」でIDとトークンを入力</li>
+                            </ol>
+                            <p style="margin: 0.5rem 0 0 0;"><strong>🔑 トークン取得:</strong> GitHub > Settings > Developer settings > Personal access tokens > Generate new token</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 店舗間データ連携 -->
+                <div class="card">
+                    <h3>🔗 店舗間データ連携</h3>
+                    <div class="store-connection">
+                        <div class="connection-status">
+                            <div id="connection-indicator" class="indicator offline">
+                                <div class="indicator-dot"></div>
+                            </div>
+                            <div class="store-info">
+                                <div><strong>接続状態:</strong> <span id="connection-text">接続中...</span></div>
+                                <div><strong id="online-users">接続中: 1人</strong></div>
+                            </div>
+                        </div>
+                        <div class="alert alert-info" style="margin-top: 1rem;">
+                            <strong>🔥 Firebase自動同期</strong>
+                            <p>リアルタイムでデータが全員に同期されます。データ変更は即座に反映されます。</p>
+                            <p><strong>店舗コード:</strong> Rush Lounge（固定）</p>
+                        </div>
+                    </div>
+                </div>
+
+            <!-- 従業員管理 -->
+            <div class="card">
+                <h3>👥 従業員管理</h3>
+                
+                <!-- 統計情報 -->
+                <div class="row" style="margin-bottom: 2rem;">
+                    <div class="col-md-6">
+                        <div class="stat-card">
+                            <h4>在籍従業員数</h4>
+                            <p id="active-employees-count">0名</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="stat-card">
+                            <h4>総従業員数</h4>
+                            <p id="total-employees-count">0名</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 新規従業員追加 -->
+                <div class="card" style="margin-bottom: 2rem;">
+                    <h4>新規従業員追加</h4>
+                    <form id="employee-form">
+                        <div class="form-group">
+                            <label for="employee-name">従業員名 *</label>
+                            <input type="text" id="employee-name" required placeholder="例: 田中 太郎">
+                        </div>
+                        <div class="form-group">
+                            <label for="employee-join-date">入社日</label>
+                            <input type="date" id="employee-join-date">
+                        </div>
+                        <button type="submit" class="btn btn-primary">👥 従業員を追加</button>
+                    </form>
+                </div>
+
+                <!-- 在籍従業員一覧 -->
+                <div class="card" style="margin-bottom: 2rem;">
+                    <h4>在籍従業員一覧</h4>
+                    <div id="active-employees-list">
+                        <p class="no-data">従業員がいません</p>
+                    </div>
+                </div>
+
+                <!-- 退職済み従業員一覧 -->
+                <div class="card" style="margin-bottom: 2rem;">
+                    <h4>退職済み従業員一覧</h4>
+                    <div id="inactive-employees-list">
+                        <p class="no-data">退職済み従業員はいません</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- データ統計 -->
+            <div class="card">
+                    <h3>📈 データ統計</h3>
+                    <div id="data-statistics" class="data-statistics">
+                        <div class="stat-item">
+                            <span class="stat-label">出勤記録:</span>
+                            <span id="attendance-count" class="stat-value">0件</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">日替わりメニュー:</span>
+                            <span id="daily-menu-count" class="stat-value">0件</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">その他メニュー:</span>
+                            <span id="regular-menu-count" class="stat-value">0件</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">その他収益:</span>
+                            <span id="other-revenue-count" class="stat-value">0件</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">支出記録:</span>
+                            <span id="expenses-count" class="stat-value">0件</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">金庫取引:</span>
+                            <span id="vault-count" class="stat-value">0件</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">在籍従業員:</span>
+                            <span id="employees-count" class="stat-value">0名</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- バージョン情報 -->
+            <section id="version-info" class="tab-content">
+                <div class="section-header">
+                    <h2>📋 バージョン情報</h2>
+                    <p>システムのバージョンとアップデート履歴</p>
+                </div>
+
+                <!-- 現在のバージョン情報 -->
+                <div class="card">
+                    <h3>📊 現在のバージョン</h3>
+                    <div class="version-current">
+                        <div class="version-display">
+                            <div class="version-main">
+                                <span class="version-label">バージョン:</span>
+                                <span id="current-version" class="version-number">v1.0.0</span>
+                            </div>
+                            <div class="version-date">
+                                <span class="version-label">最終更新:</span>
+                                <span id="last-update-date" class="update-date">-</span>
+                            </div>
+                        </div>
+                        <div class="version-info">
+                            <p><strong>🍸 Rush Lounge 経営管理システム</strong></p>
+                            <p>FiveM サーバー向けバー経営管理アプリケーション</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- アップデート履歴 -->
+                <div class="card">
+                    <h3>📝 アップデート履歴</h3>
+                    <div id="update-history" class="update-history">
+                        <!-- アップデート履歴がここに表示されます -->
+                    </div>
+                </div>
+
+                <!-- システム情報 -->
+                <div class="card">
+                    <h3>⚙️ システム情報</h3>
+                    <div class="system-info">
+                        <div class="info-item">
+                            <span class="info-label">開発者:</span>
+                            <span class="info-value">Rush Lounge 管理チーム</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">対象サーバー:</span>
+                            <span class="info-value">FiveM RP サーバー</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">技術スタック:</span>
+                            <span class="info-value">HTML5, CSS3, JavaScript, Firebase</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">ライセンス:</span>
+                            <span class="info-value">Rush Lounge 専用</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 機能一覧 -->
+                <div class="card">
+                    <h3>🚀 実装機能一覧</h3>
+                    <div class="features-grid">
+                        <div class="feature-category">
+                            <h4>📋 出勤・勤怠管理</h4>
+                            <ul>
+                                <li>カレンダー式出勤記録</li>
+                                <li>週間出勤統計</li>
+                                <li>ボーナス自動計算</li>
+                                <li>重複記録防止</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="feature-category">
+                            <h4>🍽️ メニュー管理</h4>
+                            <ul>
+                                <li>日替わりメニュー設定</li>
+                                <li>コース売上記録</li>
+                                <li>メニュー構成管理</li>
+                                <li>価格自動計算</li>
+                            </ul>
+                        </div>
+
+                        <div class="feature-category">
+                            <h4>💰 売上・財務管理</h4>
+                            <ul>
+                                <li>総合売上統計</li>
+                                <li>収支表管理</li>
+                                <li>金庫残高追跡</li>
+                                <li>利益率計算</li>
+                            </ul>
+                        </div>
+
+                        <div class="feature-category">
+                            <h4>🔄 データ管理</h4>
+                            <ul>
+                                <li>CSV インポート・エクスポート</li>
+                                <li>Firebase リアルタイム同期</li>
+                                <li>自動バックアップ</li>
+                                <li>重複データ除去</li>
+                            </ul>
+                        </div>
+
+                        <div class="feature-category">
+                            <h4>📊 商品・コース管理</h4>
+                            <ul>
+                                <li>商品・コース登録</li>
+                                <li>原価計算</li>
+                                <li>素材管理</li>
+                                <li>利益分析</li>
+                            </ul>
+                        </div>
+
+                        <div class="feature-category">
+                            <h4>👥 従業員管理</h4>
+                            <ul>
+                                <li>従業員登録・管理</li>
+                                <li>入退社記録</li>
+                                <li>アクセス制御</li>
+                                <li>統計情報</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- フッター -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-info">
+                    <div class="footer-title">🍸 Rush Lounge 経営管理システム</div>
+                    <div class="footer-version">
+                        <span>バージョン <span id="footer-version">v1.0.0</span></span>
+                        <span class="separator">|</span>
+                        <span>最終更新: <span id="footer-last-update">-</span></span>
+                    </div>
+                </div>
+                <div class="footer-copyright">
+                    <p>&copy; 2024 Rush Lounge. All rights reserved.</p>
+                    <p>FiveM RP サーバー専用管理システム</p>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
+    <script src="script.js"></script>
+    
+    <!-- 
+    バージョン更新記録用コマンド（ブラウザコンソールで実行）:
+    recordUpdate("v1.2.1", "patch", "その他メニュー構成セクションの削除", [
+        "その他メニュータブからメニュー構成表示セクションを削除",
+        "関連するJavaScript関数とCSS スタイルを削除",
+        "UIの簡素化とパフォーマンスの向上"
+    ]);
+    
+    デバッグ用コマンド（問題が発生した場合にコンソールで実行）:
+    rushLounge.updateAllDisplays(); // 全表示を強制更新
+    rushLounge.updateDailyMenuPriceDisplay(); // 日替わりメニュー価格を強制更新
+    rushLounge.getDailyMenuPrice(); // 現在の日替わりメニュー価格を確認
+    -->
+</body>
+</html> 
