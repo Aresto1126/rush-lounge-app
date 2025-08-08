@@ -74,6 +74,48 @@ class RushLoungeManager {
         this.initializeDefaultData();
     }
 
+    // 日替わりメニューの現在価格を取得
+    getDailyMenuPrice() {
+        // 「日替わりメニュー」という名前のコースを検索
+        const dailyMenuCourse = this.data.courses.find(course => 
+            course.name === '日替わりメニュー' || course.name.includes('日替わり')
+        );
+        
+        if (dailyMenuCourse) {
+            console.log(`📊 日替わりメニュー価格をコースから取得: ¥${dailyMenuCourse.price.toLocaleString()}`);
+            return dailyMenuCourse.price;
+        }
+        
+        // デフォルト価格（従来の固定価格）
+        console.log('📊 日替わりメニューコースが見つからないため、デフォルト価格を使用: ¥25,000');
+        return 25000;
+    }
+
+    // 日替わりメニューの価格表示を更新
+    updateDailyMenuPriceDisplay() {
+        const currentPrice = this.getDailyMenuPrice();
+        const priceInput = document.getElementById('config-price');
+        const priceInfo = document.getElementById('daily-menu-price-info');
+        
+        if (priceInput) {
+            priceInput.value = currentPrice;
+        }
+        
+        if (priceInfo) {
+            const dailyMenuCourse = this.data.courses.find(course => 
+                course.name === '日替わりメニュー' || course.name.includes('日替わり')
+            );
+            
+            if (dailyMenuCourse) {
+                priceInfo.textContent = `※ コース管理「${dailyMenuCourse.name}」の価格 ¥${currentPrice.toLocaleString()} が適用されます`;
+            } else {
+                priceInfo.textContent = '※ デフォルト価格 ¥25,000 が適用されます（コース管理で「日替わりメニュー」を作成すると価格を変更できます）';
+            }
+        }
+        
+        console.log(`💰 日替わりメニュー価格表示を更新: ¥${currentPrice.toLocaleString()}`);
+    }
+
     // 初期化
     init() {
         this.loadData();
@@ -84,6 +126,7 @@ class RushLoungeManager {
         this.setupMaterialSelector();
         this.initializeMenuTypeSelector();
         this.initializeDailyMenuProductSelector();
+        this.initializeCourseProductSelector();
         this.initializeFirebase();
         this.setupStoreConnection();
         this.setupGistSync();
@@ -265,9 +308,42 @@ class RushLoungeManager {
             }
         ];
 
+        // 素材の初期データを設定（空の場合のみ）
+        if (Object.keys(this.data.materialHistory).length === 0) {
+            this.data.materialHistory = {
+                'パイナップル': 5000,
+                '白ワイン': 50000,
+                'トマト': 3000,
+                'チーズ': 8000
+            };
+            console.log('素材の初期データを設定しました');
+        }
+
+        // 日替わりメニューコースを追加（存在しない場合のみ）
+        const hasDailyMenuCourse = this.data.courses.some(course => 
+            course.name === '日替わりメニュー' || course.name.includes('日替わり')
+        );
+        
+        if (!hasDailyMenuCourse) {
+            const dailyMenuCourse = {
+                id: Date.now() + Math.random(),
+                name: '日替わりメニュー',
+                price: 25000,
+                cost: 12500,
+                description: 'その日に設定された3品の組み合わせメニュー',
+                ingredients: 'その日の設定による',
+                products: ['daily-menu'], // 特別な識別子
+                selectedProducts: [],
+                timestamp: new Date().toISOString()
+            };
+            this.data.courses.push(dailyMenuCourse);
+            console.log('📋 日替わりメニューコースを追加しました');
+        }
+
         // データが空の場合または更新が必要な場合に追加/更新
-        if (this.data.courses.length === 0) {
-            this.data.courses = defaultCourses;
+        if (this.data.courses.filter(c => c.name !== '日替わりメニュー').length === 0) {
+            // 既存の日替わりメニュー以外のコースがない場合のみデフォルトコースを追加
+            this.data.courses = [...this.data.courses.filter(c => c.name === '日替わりメニュー'), ...defaultCourses];
         } else if (needsUpdate) {
             // 既存コースの原価を更新
             this.data.courses.forEach(course => {
@@ -441,14 +517,18 @@ class RushLoungeManager {
         selectors.forEach(selectorId => {
             const selector = document.getElementById(selectorId);
             if (selector) {
-                // 商品一覧を選択肢に追加
-                selector.innerHTML = '<option value="">商品を選択してください</option>';
-                this.data.products.forEach(product => {
-                    const option = document.createElement('option');
-                    option.value = product.id;
-                    option.textContent = `${product.name} (¥${product.cost.toLocaleString()})`;
-                    selector.appendChild(option);
-                });
+                // optgroup構造を保持して商品選択肢を更新
+                selector.innerHTML = `
+                    <option value="">商品を選択してください</option>
+                    <optgroup label="登録商品">
+                        ${this.data.products.map(product => 
+                            `<option value="${product.id}">${product.name} (¥${product.cost.toLocaleString()})</option>`
+                        ).join('')}
+                    </optgroup>
+                    <optgroup label="日替わりメニュー">
+                        <option value="daily-menu">日替わりメニュー（設定日の商品構成）</option>
+                    </optgroup>
+                `;
             }
         });
     }
@@ -460,22 +540,35 @@ class RushLoungeManager {
         const product3Id = document.getElementById('course-product-3').value;
         const coursePrice = parseInt(document.getElementById('course-price').value) || 0;
 
-        // 選択された商品を取得
-        const selectedProducts = [product1Id, product2Id, product3Id]
-            .filter(id => id)
-            .map(id => this.data.products.find(p => p.id == id))
-            .filter(p => p);
+        // 選択された商品を取得（日替わりメニュー対応）
+        const selectedProducts = [];
+        const selectedProductNames = [];
+        let totalCost = 0;
+        
+        [product1Id, product2Id, product3Id].forEach(id => {
+            if (id === 'daily-menu') {
+                // 日替わりメニューが選択された場合
+                selectedProductNames.push('日替わりメニュー');
+                totalCost += 12500; // 日替わりメニューの想定原価（25000円の半分）
+            } else if (id) {
+                const product = this.data.products.find(p => p.id == id);
+                if (product) {
+                    selectedProducts.push(product);
+                    selectedProductNames.push(product.name);
+                    totalCost += product.cost;
+                }
+            }
+        });
 
         // 選択商品の表示
         const selectedProductsDisplay = document.getElementById('selected-course-products');
-        if (selectedProducts.length === 0) {
+        if (selectedProductNames.length === 0) {
             selectedProductsDisplay.textContent = 'なし';
         } else {
-            selectedProductsDisplay.textContent = selectedProducts.map(p => p.name).join(', ');
+            selectedProductsDisplay.textContent = selectedProductNames.join(', ');
         }
 
         // 原価計算
-        const totalCost = selectedProducts.reduce((sum, product) => sum + product.cost, 0);
         document.getElementById('calculated-course-cost').textContent = `¥${totalCost.toLocaleString()}`;
         document.getElementById('course-cost').value = totalCost;
 
@@ -485,9 +578,14 @@ class RushLoungeManager {
         profitDisplay.textContent = `¥${profit.toLocaleString()}`;
 
         // コース内容の自動生成
-        if (selectedProducts.length > 0) {
-            const descriptions = selectedProducts.map(p => `${p.name}: ${p.description}`).join('\n');
-            document.getElementById('course-description').value = descriptions;
+        const descriptions = [];
+        selectedProducts.forEach(p => descriptions.push(`${p.name}: ${p.description}`));
+        if (selectedProductNames.includes('日替わりメニュー')) {
+            descriptions.push('日替わりメニュー: その日設定されたメニュー構成');
+        }
+        
+        if (descriptions.length > 0) {
+            document.getElementById('course-description').value = descriptions.join('\n');
         } else {
             document.getElementById('course-description').value = '';
         }
@@ -618,7 +716,7 @@ class RushLoungeManager {
                 document.getElementById('daily-item-2').value,
                 document.getElementById('daily-item-3').value
             ],
-            price: this.fixedPrices.dailyMenu, // 固定価格を使用
+            price: this.getDailyMenuPrice(), // 動的価格を使用
             timestamp: new Date().toISOString()
         };
 
@@ -649,13 +747,16 @@ class RushLoungeManager {
             return;
         }
 
+        // 動的価格を取得（コース管理から）
+        const currentPrice = this.getDailyMenuPrice();
+        
         const sale = {
             id: Date.now(),
             date: date,
             menuItems: menuConfig.items,
             quantity: quantity,
-            price: menuConfig.price,
-            total: quantity * menuConfig.price,
+            price: currentPrice, // 動的価格を使用
+            total: quantity * currentPrice, // 動的価格で計算
             type: 'daily',
             timestamp: new Date().toISOString()
         };
@@ -854,6 +955,7 @@ class RushLoungeManager {
         this.saveData();
         this.updateCourseDisplay();
         this.updateMenuTypeSelector(); // メニュータイプ選択肢を更新
+        this.updateDailyMenuPriceDisplay(); // 日替わりメニュー価格も更新
         this.showAlert('コースが登録されました', 'success');
         e.target.reset();
         this.updateCourseCalculation(); // 計算表示をリセット
@@ -1815,12 +1917,12 @@ class RushLoungeManager {
     updateMaterialDisplay() {
         const container = document.getElementById('material-list-display');
         
-        if (Object.keys(this.materials).length === 0) {
+        if (Object.keys(this.data.materialHistory).length === 0) {
             container.innerHTML = '<div class="empty-state">登録された素材がありません</div>';
             return;
         }
         
-        const html = Object.entries(this.materials).map(([name, price]) => {
+        const html = Object.entries(this.data.materialHistory).map(([name, price]) => {
             return `
                 <div class="material-item">
                     <div class="product-header">
@@ -2265,12 +2367,12 @@ class RushLoungeManager {
     updateMaterialManagementDisplay() {
         const container = document.getElementById('material-management-list');
         
-        if (Object.keys(this.materials).length === 0) {
+        if (Object.keys(this.data.materialHistory).length === 0) {
             container.innerHTML = '<div class="empty-state">登録された素材がありません</div>';
             return;
         }
         
-        const html = Object.entries(this.materials).map(([name, price]) => {
+        const html = Object.entries(this.data.materialHistory).map(([name, price]) => {
             return `
                 <div class="material-item" id="material-${name}">
                     <div class="product-header">
@@ -2303,6 +2405,17 @@ class RushLoungeManager {
         const container = document.getElementById(`course-${id}`);
         const originalHtml = container.innerHTML;
 
+        // 商品選択肢の生成
+        const productOptions = this.data.products.map(product => 
+            `<option value="${product.id}">${product.name} (¥${product.cost.toLocaleString()})</option>`
+        ).join('');
+
+        // 現在の構成商品を取得
+        const currentProducts = course.products || [];
+        const product1 = currentProducts[0] || '';
+        const product2 = currentProducts[1] || '';
+        const product3 = currentProducts[2] || '';
+
         container.innerHTML = `
             <form class="edit-form" onsubmit="rushLounge.saveCourseEdit(event, ${id})">
                 <div class="form-group">
@@ -2311,19 +2424,70 @@ class RushLoungeManager {
                 </div>
                 <div class="form-group">
                     <label>販売価格 (円):</label>
-                    <input type="number" name="price" value="${course.price}" min="0" required>
+                    <input type="number" name="price" value="${course.price}" min="0" required onchange="rushLounge.updateEditCourseCalculation(${id})">
                 </div>
+                
+                <div class="form-group">
+                    <label>構成商品選択（3品）:</label>
+                    <div class="course-product-selector">
+                        <div class="product-selection-item">
+                            <label>1品目:</label>
+                            <select name="product1" id="edit-course-product-1-${id}" onchange="rushLounge.updateEditCourseCalculation(${id})">
+                                <option value="">商品を選択してください</option>
+                                <optgroup label="登録商品">
+                                    ${productOptions}
+                                </optgroup>
+                                <optgroup label="日替わりメニュー">
+                                    <option value="daily-menu" ${product1 === 'daily-menu' ? 'selected' : ''}>日替わりメニュー（設定日の商品構成）</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="product-selection-item">
+                            <label>2品目:</label>
+                            <select name="product2" id="edit-course-product-2-${id}" onchange="rushLounge.updateEditCourseCalculation(${id})">
+                                <option value="">商品を選択してください</option>
+                                <optgroup label="登録商品">
+                                    ${productOptions}
+                                </optgroup>
+                                <optgroup label="日替わりメニュー">
+                                    <option value="daily-menu" ${product2 === 'daily-menu' ? 'selected' : ''}>日替わりメニュー（設定日の商品構成）</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="product-selection-item">
+                            <label>3品目:</label>
+                            <select name="product3" id="edit-course-product-3-${id}" onchange="rushLounge.updateEditCourseCalculation(${id})">
+                                <option value="">商品を選択してください</option>
+                                <optgroup label="登録商品">
+                                    ${productOptions}
+                                </optgroup>
+                                <optgroup label="日替わりメニュー">
+                                    <option value="daily-menu" ${product3 === 'daily-menu' ? 'selected' : ''}>日替わりメニュー（設定日の商品構成）</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="course-calculation-summary">
+                        <div><strong>選択された商品:</strong> <span id="edit-selected-course-products-${id}">なし</span></div>
+                        <div><strong>自動計算原価:</strong> <span id="edit-calculated-course-cost-${id}">¥0</span></div>
+                        <div><strong>予想利益:</strong> <span id="edit-estimated-course-profit-${id}">¥0</span></div>
+                    </div>
+                </div>
+                
                 <div class="form-group">
                     <label>原価 (円):</label>
-                    <input type="number" name="cost" value="${course.cost}" min="0" required>
+                    <input type="number" name="cost" id="edit-course-cost-${id}" value="${course.cost}" min="0" readonly>
+                    <small>※ 商品選択で自動計算されます</small>
                 </div>
                 <div class="form-group">
                     <label>コース内容:</label>
-                    <textarea name="description" rows="3">${course.description || ''}</textarea>
+                    <textarea name="description" id="edit-course-description-${id}" rows="3">${course.description || ''}</textarea>
+                    <small>※ 商品選択で自動生成されます</small>
                 </div>
                 <div class="form-group">
                     <label>使用食材:</label>
-                    <textarea name="ingredients" rows="3">${course.ingredients || ''}</textarea>
+                    <textarea name="ingredients" id="edit-course-ingredients-${id}" rows="3">${course.ingredients || ''}</textarea>
+                    <small>※ 商品選択で自動生成されます</small>
                 </div>
                 <div class="management-buttons">
                     <button type="submit" class="btn btn-primary">保存</button>
@@ -2331,6 +2495,94 @@ class RushLoungeManager {
                 </div>
             </form>
         `;
+
+        // 現在の商品を選択状態にする
+        setTimeout(() => {
+            if (product1 && product1 !== 'daily-menu') {
+                document.getElementById(`edit-course-product-1-${id}`).value = product1;
+            }
+            if (product2 && product2 !== 'daily-menu') {
+                document.getElementById(`edit-course-product-2-${id}`).value = product2;
+            }
+            if (product3 && product3 !== 'daily-menu') {
+                document.getElementById(`edit-course-product-3-${id}`).value = product3;
+            }
+            this.updateEditCourseCalculation(id);
+        }, 100);
+    }
+
+    // コース編集時の計算更新
+    updateEditCourseCalculation(courseId) {
+        const product1Id = document.getElementById(`edit-course-product-1-${courseId}`).value;
+        const product2Id = document.getElementById(`edit-course-product-2-${courseId}`).value;
+        const product3Id = document.getElementById(`edit-course-product-3-${courseId}`).value;
+        const coursePriceInput = document.querySelector(`#course-${courseId} input[name="price"]`);
+        const coursePrice = parseInt(coursePriceInput?.value) || 0;
+
+        // 選択された商品を取得（日替わりメニュー対応）
+        const selectedProducts = [];
+        const selectedProductNames = [];
+        let totalCost = 0;
+        
+        [product1Id, product2Id, product3Id].forEach(id => {
+            if (id === 'daily-menu') {
+                selectedProductNames.push('日替わりメニュー');
+                totalCost += 12500; // 日替わりメニューの想定原価
+            } else if (id) {
+                const product = this.data.products.find(p => p.id == id);
+                if (product) {
+                    selectedProducts.push(product);
+                    selectedProductNames.push(product.name);
+                    totalCost += product.cost;
+                }
+            }
+        });
+
+        // 選択商品の表示
+        const selectedProductsDisplay = document.getElementById(`edit-selected-course-products-${courseId}`);
+        if (selectedProductNames.length === 0) {
+            selectedProductsDisplay.textContent = 'なし';
+        } else {
+            selectedProductsDisplay.textContent = selectedProductNames.join(', ');
+        }
+
+        // 原価計算
+        document.getElementById(`edit-calculated-course-cost-${courseId}`).textContent = `¥${totalCost.toLocaleString()}`;
+        document.getElementById(`edit-course-cost-${courseId}`).value = totalCost;
+
+        // 利益計算
+        const profit = coursePrice - totalCost;
+        const profitDisplay = document.getElementById(`edit-estimated-course-profit-${courseId}`);
+        profitDisplay.textContent = `¥${profit.toLocaleString()}`;
+
+        // コース内容の自動生成
+        const descriptions = [];
+        selectedProducts.forEach(p => descriptions.push(`${p.name}: ${p.description}`));
+        if (selectedProductNames.includes('日替わりメニュー')) {
+            descriptions.push('日替わりメニュー: その日設定されたメニュー構成');
+        }
+        
+        if (descriptions.length > 0) {
+            document.getElementById(`edit-course-description-${courseId}`).value = descriptions.join('\n');
+        }
+
+        // 使用食材の自動生成
+        if (selectedProducts.length > 0) {
+            const materialsSet = new Set();
+            selectedProducts.forEach(product => {
+                if (product.materials) {
+                    product.materials.forEach(material => {
+                        materialsSet.add(`${material.name} x${material.quantity}`);
+                    });
+                }
+            });
+            
+            if (selectedProductNames.includes('日替わりメニュー')) {
+                materialsSet.add('日替わりメニュー用食材');
+            }
+            
+            document.getElementById(`edit-course-ingredients-${courseId}`).value = Array.from(materialsSet).join(', ');
+        }
     }
 
     // 商品編集
@@ -2343,6 +2595,9 @@ class RushLoungeManager {
 
         const container = document.getElementById(`product-${id}`);
         const originalHtml = container.innerHTML;
+
+        // 素材選択UIの生成
+        const materialSelector = this.generateMaterialSelectorForEdit(product.materials || []);
 
         container.innerHTML = `
             <form class="edit-form" onsubmit="rushLounge.saveProductEdit(event, ${id})">
@@ -2364,24 +2619,27 @@ class RushLoungeManager {
                     <small>※ 移動販売では全商品一律¥10,000で取引されます</small>
                 </div>
                 <div class="form-group">
-                    <label>原価 (円):</label>
-                    <input type="number" name="cost" value="${product.cost}" min="0" required>
-                </div>
-                <div class="form-group">
                     <label>商品説明:</label>
-                    <textarea name="description" rows="4">${product.description || ''}</textarea>
+                    <textarea name="description" rows="4" placeholder="商品の説明（任意）">${product.description || ''}</textarea>
                 </div>
                 <div class="form-group">
-                    <label>必要素材:</label>
-                    <textarea name="materials" rows="2" placeholder="例: パイナップル*1(¥5,000)、白ワイン*1(¥50,000)">${product.materials || ''}</textarea>
+                    <label>必要素材選択:</label>
+                    <div id="edit-material-selector-${id}" class="material-selector">
+                        ${materialSelector}
+                    </div>
+                    <div class="material-summary">
+                        <div><strong>選択された素材:</strong> <span id="edit-selected-materials-text-${id}">なし</span></div>
+                        <div><strong>総素材コスト:</strong> <span id="edit-total-material-cost-${id}">¥0</span></div>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>完成数:</label>
-                    <input type="number" name="craftYield" value="${product.craftYield || ''}" min="1" placeholder="1回のクラフトで作れる数">
+                    <input type="number" id="edit-product-craft-yield-${id}" name="craftYield" value="${product.craftYield || 6}" min="1" placeholder="1回のクラフトで作れる数" onchange="rushLounge.calculateEditProductCost(${id})">
                 </div>
                 <div class="form-group">
-                    <label>総素材コスト (円):</label>
-                    <input type="number" name="totalMaterialCost" value="${product.totalMaterialCost || ''}" min="0" placeholder="素材の合計コスト">
+                    <label>自動計算原価 (円):</label>
+                    <input type="number" id="edit-product-cost-${id}" name="cost" readonly placeholder="素材コストと完成数から自動計算">
+                    <small>※ 総素材コスト ÷ 完成数 で自動計算されます</small>
                 </div>
                 <div class="management-buttons">
                     <button type="submit" class="btn btn-primary">保存</button>
@@ -2389,6 +2647,98 @@ class RushLoungeManager {
                 </div>
             </form>
         `;
+
+        // 初期計算
+        setTimeout(() => {
+            this.calculateEditProductCost(id);
+        }, 100);
+    }
+
+    // 編集用素材セレクターの生成
+    generateMaterialSelectorForEdit(selectedMaterials) {
+        const materialEntries = Object.entries(this.data.materialHistory);
+        if (materialEntries.length === 0) {
+            return '<div class="alert alert-info"><p>登録された素材がありません。先に素材を登録してください。</p></div>';
+        }
+
+        return materialEntries.map(([name, price]) => {
+            const existing = selectedMaterials.find(m => m.name === name);
+            const isChecked = existing ? 'checked' : '';
+            const quantity = existing ? existing.quantity : 1;
+            
+            return `
+                <div class="material-item">
+                    <input type="checkbox" id="edit-material-${name}" name="materials" value="${name}" ${isChecked} 
+                           onchange="rushLounge.updateEditMaterialSelection()">
+                    <div class="material-info">
+                        <div class="material-name">${name}</div>
+                        <div class="material-price">¥${price.toLocaleString()}</div>
+                    </div>
+                    <input type="number" class="material-quantity" value="${quantity}" min="1" 
+                           onchange="rushLounge.updateEditMaterialSelection()" data-material="${name}">
+                </div>
+            `;
+        }).join('');
+    }
+
+    // 編集時の素材選択更新
+    updateEditMaterialSelection() {
+        // 現在編集中の商品IDを特定
+        const editForm = document.querySelector('.edit-form');
+        if (!editForm) return;
+        
+        const productId = editForm.getAttribute('onsubmit').match(/saveProductEdit\(event, (\d+)\)/)?.[1];
+        if (!productId) return;
+
+        const checkedMaterials = Array.from(document.querySelectorAll(`#edit-material-selector-${productId} input[name="materials"]:checked`));
+        const selectedMaterials = [];
+        let totalCost = 0;
+
+        checkedMaterials.forEach(checkbox => {
+            const materialName = checkbox.value;
+            const quantityInput = document.querySelector(`#edit-material-selector-${productId} input[data-material="${materialName}"]`);
+            const quantity = parseInt(quantityInput.value) || 1;
+            const price = this.data.materialHistory[materialName] || 0;
+            
+            selectedMaterials.push(materialName + ` x${quantity}`);
+            totalCost += price * quantity;
+        });
+
+        // 表示更新
+        const selectedText = document.getElementById(`edit-selected-materials-text-${productId}`);
+        const totalCostText = document.getElementById(`edit-total-material-cost-${productId}`);
+        
+        if (selectedText) {
+            selectedText.textContent = selectedMaterials.length > 0 ? selectedMaterials.join(', ') : 'なし';
+        }
+        if (totalCostText) {
+            totalCostText.textContent = `¥${totalCost.toLocaleString()}`;
+        }
+
+        // 原価計算の更新
+        this.calculateEditProductCost(productId);
+    }
+
+    // 編集時の商品原価計算
+    calculateEditProductCost(productId) {
+        const checkedMaterials = Array.from(document.querySelectorAll(`#edit-material-selector-${productId} input[name="materials"]:checked`));
+        let totalMaterialCost = 0;
+
+        checkedMaterials.forEach(checkbox => {
+            const materialName = checkbox.value;
+            const quantityInput = document.querySelector(`#edit-material-selector-${productId} input[data-material="${materialName}"]`);
+            const quantity = parseInt(quantityInput.value) || 1;
+            const price = this.data.materialHistory[materialName] || 0;
+            totalMaterialCost += price * quantity;
+        });
+
+        const craftYield = parseInt(document.getElementById(`edit-product-craft-yield-${productId}`)?.value) || 1;
+        const unitCost = Math.ceil(totalMaterialCost / craftYield);
+        
+        const costInput = document.getElementById(`edit-product-cost-${productId}`);
+        if (costInput) {
+            costInput.value = unitCost;
+        }
     }
 
     // コース編集保存
@@ -2403,19 +2753,28 @@ class RushLoungeManager {
             return;
         }
 
+        // 構成商品を取得
+        const products = [
+            formData.get('product1'),
+            formData.get('product2'),
+            formData.get('product3')
+        ].filter(p => p);
+
         this.data.courses[courseIndex] = {
             ...this.data.courses[courseIndex],
             name: formData.get('name'),
             price: parseInt(formData.get('price')),
             cost: parseInt(formData.get('cost')),
             description: formData.get('description'),
-            ingredients: formData.get('ingredients')
+            ingredients: formData.get('ingredients'),
+            products: products // 構成商品を保存
         };
 
         this.saveData();
         this.updateCourseManagementDisplay();
         this.updateCourseDisplay(); // 新規コースタブの表示も更新
         this.updateMenuTypeSelector(); // メニュータイプ選択肢も更新
+        this.updateDailyMenuPriceDisplay(); // 日替わりメニュー価格も更新
         this.showAlert('コースが更新されました', 'success');
     }
 
@@ -2431,6 +2790,22 @@ class RushLoungeManager {
             return;
         }
 
+        // 選択された素材を取得
+        const checkedMaterials = Array.from(document.querySelectorAll(`#edit-material-selector-${id} input[name="materials"]:checked`));
+        const materials = checkedMaterials.map(checkbox => {
+            const materialName = checkbox.value;
+            const quantityInput = document.querySelector(`#edit-material-selector-${id} input[data-material="${materialName}"]`);
+            const quantity = parseInt(quantityInput.value) || 1;
+            return {
+                name: materialName,
+                quantity: quantity,
+                price: this.data.materialHistory[materialName] || 0
+            };
+        });
+
+        // 総素材コストを計算
+        const totalMaterialCost = materials.reduce((sum, material) => sum + (material.price * material.quantity), 0);
+
         this.data.products[productIndex] = {
             ...this.data.products[productIndex],
             name: formData.get('name'),
@@ -2438,15 +2813,16 @@ class RushLoungeManager {
             price: 10000, // 移動販売固定価格
             cost: parseInt(formData.get('cost')),
             description: formData.get('description'),
-            materials: formData.get('materials'),
-            craftYield: formData.get('craftYield') ? parseInt(formData.get('craftYield')) : null,
-            totalMaterialCost: formData.get('totalMaterialCost') ? parseInt(formData.get('totalMaterialCost')) : null
+            materials: materials, // 構造化された素材データ
+            craftYield: formData.get('craftYield') ? parseInt(formData.get('craftYield')) : 6,
+            totalMaterialCost: totalMaterialCost
         };
 
         this.saveData();
         this.updateProductManagementDisplay();
         this.updateProductDisplay(); // 新規商品タブの表示も更新
         this.updateDailyMenuProductSelector(); // 日替わりメニュー商品選択肢も更新
+        this.initializeCourseProductSelector(); // コース商品選択肢も更新
         this.showAlert('商品が更新されました', 'success');
     }
 
@@ -2457,7 +2833,7 @@ class RushLoungeManager {
 
     // 素材編集
     editMaterial(name) {
-        const price = this.materials[name];
+        const price = this.data.materialHistory[name];
         if (price === undefined) {
             this.showAlert('素材が見つかりません', 'error');
             return;
@@ -2493,30 +2869,18 @@ class RushLoungeManager {
         const newPrice = parseInt(formData.get('price'));
 
         // 名前が変更された場合、重複チェック
-        if (newName !== oldName && this.materials[newName]) {
+        if (newName !== oldName && this.data.materialHistory[newName]) {
             this.showAlert('この素材名は既に存在します', 'error');
             return;
         }
 
-        // 古い素材を削除
-        delete this.materials[oldName];
-        
-        // 新しい素材を追加
-        this.materials[newName] = newPrice;
-
-        // 履歴に記録
-        if (!this.data.materialHistory) {
-            this.data.materialHistory = [];
+        // 古い素材を削除（名前が変更された場合）
+        if (newName !== oldName) {
+            delete this.data.materialHistory[oldName];
         }
         
-        this.data.materialHistory.push({
-            id: Date.now(),
-            name: newName,
-            price: newPrice,
-            action: 'edit',
-            oldName: oldName,
-            timestamp: new Date().toISOString()
-        });
+        // 新しい素材を追加/更新
+        this.data.materialHistory[newName] = newPrice;
 
         this.saveData();
         this.updateMaterialDisplay();
@@ -2528,19 +2892,7 @@ class RushLoungeManager {
     // 素材削除
     deleteMaterial(name) {
         if (confirm(`素材「${name}」を削除しますか？\n※既存の商品で使用されている場合は影響を受ける可能性があります`)) {
-            delete this.materials[name];
-            
-            // 履歴に記録
-            if (!this.data.materialHistory) {
-                this.data.materialHistory = [];
-            }
-            
-            this.data.materialHistory.push({
-                id: Date.now(),
-                name: name,
-                action: 'delete',
-                timestamp: new Date().toISOString()
-            });
+            delete this.data.materialHistory[name];
 
             this.saveData();
             this.updateMaterialDisplay();
@@ -2555,7 +2907,7 @@ class RushLoungeManager {
         const container = document.getElementById('material-selector');
         if (!container) return;
 
-        const html = Object.entries(this.materials).map(([name, price]) => `
+        const html = Object.entries(this.data.materialHistory).map(([name, price]) => `
             <div class="material-item">
                 <input type="checkbox" id="material-${name}" onchange="rushLounge.updateMaterialSelection()">
                 <div class="material-info">
@@ -2575,13 +2927,13 @@ class RushLoungeManager {
         const selectedMaterials = [];
         let totalCost = 0;
 
-        Object.keys(this.materials).forEach(materialName => {
+        Object.keys(this.data.materialHistory).forEach(materialName => {
             const checkbox = document.getElementById(`material-${materialName}`);
             const quantityInput = document.getElementById(`quantity-${materialName}`);
             
             if (checkbox && checkbox.checked) {
                 const quantity = parseInt(quantityInput.value) || 1;
-                const price = this.materials[materialName];
+                const price = this.data.materialHistory[materialName];
                 const cost = price * quantity;
                 
                 selectedMaterials.push(`${materialName}*${quantity}(¥${price.toLocaleString()})`);
@@ -2646,10 +2998,10 @@ class RushLoungeManager {
                 this.updateCurrentDailyMenu();
                 this.updateDailyMenuDisplay();
                 this.updateDailyMenuConfigDisplay();
+                this.updateDailyMenuPriceDisplay();
                 break;
             case 'regular-menu':
                 this.updateRegularMenuDisplay();
-                this.updateRegularMenuComposition();
                 break;
             case 'other-revenue':
                 this.updateOtherRevenueDisplay();
@@ -2674,6 +3026,7 @@ class RushLoungeManager {
                 this.updateCourseManagementDisplay();
                 this.updateProductManagementDisplay();
                 this.setupMaterialSelector();
+                this.updateDailyMenuPriceDisplay(); // 日替わりメニュー価格も更新
                 break;
             case 'data-import':
                 this.updateDataStatistics();
@@ -2692,9 +3045,9 @@ class RushLoungeManager {
         this.updateCurrentDailyMenu();
         this.updateDailyMenuDisplay();
         this.updateDailyMenuConfigDisplay();
+        this.updateDailyMenuPriceDisplay();
         this.updateRegularMenuDisplay();
         this.updateRegularMenuStats(); // その他メニュー統計を追加
-        this.updateRegularMenuComposition(); // その他メニュー構成を更新
         this.updateOtherRevenueDisplay();
         this.updateExpenseDisplay();
         this.updateVaultDisplay();
@@ -2702,8 +3055,10 @@ class RushLoungeManager {
         this.updateProductDisplay();
         this.updateCourseManagementDisplay();
         this.updateProductManagementDisplay();
+        this.updateMaterialManagementDisplay();
         this.updateMenuTypeSelector(); // メニュータイプ選択肢も更新
         this.updateDailyMenuProductSelector(); // 日替わりメニュー商品選択肢も更新
+        this.initializeCourseProductSelector(); // コース商品選択肢も更新
         this.updateSalesStats();
         this.updateFinancialStats();
         this.updateDataStatistics();
@@ -3796,10 +4151,10 @@ class RushLoungeManager {
             amount = this.parseAmount(amountField);
         }
         
-        // 金額が0または取得できない場合、デフォルトで25000円（日替わりメニューの固定価格）
+        // 金額が0または取得できない場合、動的価格を使用
         if (!amount || amount <= 0) {
-            amount = 25000;
-            console.log(`💰 金額を固定価格に設定: ¥${amount}`);
+            amount = this.getDailyMenuPrice();
+            console.log(`💰 金額を動的価格に設定: ¥${amount}`);
         }
 
         // 数量の取得
@@ -5210,60 +5565,7 @@ ${new Date().toLocaleDateString('ja-JP')} ${new Date().toLocaleTimeString('ja-JP
         }
     }
 
-    // 登録コースの構成表示（日替わりメニュー除外）
-    updateRegularMenuComposition() {
-        const container = document.getElementById('regular-menu-composition');
-        if (!container) return;
 
-        // 登録済みコースを取得（日替わりメニューを除外）
-        const registeredCourses = (this.data.courses || []).filter(course => {
-            // 日替わりメニューを除外する条件
-            return course.name !== '日替わりメニュー' && 
-                   course.price !== 25000 && // 日替わりメニューの固定価格
-                   !course.isDailyMenu; // 日替わりメニューフラグがある場合
-        });
-
-        if (registeredCourses.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <p>登録されたコースがありません</p>
-                    <p>コース・商品管理タブから新しいコースを作成してください</p>
-                    <p><em>※日替わりメニューは専用タブで管理されます</em></p>
-                </div>
-            `;
-            return;
-        }
-
-        const html = registeredCourses.map(course => {
-            // コースの構成商品を取得
-            const menuItems = course.selectedProducts ? 
-                course.selectedProducts.map(p => p.name) : 
-                course.description ? [course.description] : ['コース構成'];
-
-            return `
-                <div class="menu-composition-item">
-                    <div class="menu-header">
-                        <h4>${course.name}</h4>
-                        <div class="menu-price">¥${course.price.toLocaleString()}</div>
-                    </div>
-                    <div class="menu-items">
-                        ${menuItems.map((item, index) => `
-                            <div class="menu-item">
-                                <span class="item-number">${index + 1}.</span>
-                                <span class="item-name">${item}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div class="course-details">
-                        <div><strong>原価:</strong> ¥${course.cost.toLocaleString()}</div>
-                        <div><strong>利益:</strong> ¥${(course.price - course.cost).toLocaleString()}</div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-        
-        container.innerHTML = html;
-    }
 
     // GitHub Gist同期機能（Firebase代替）
     async setupGistSync() {

@@ -718,91 +718,7 @@ table tr:hover {
     margin-bottom: 10px;
 }
 
-/* 固定メニュー表示スタイル */
-.fixed-menus-display {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px;
-}
 
-.menu-composition {
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-    border-radius: 12px;
-    padding: 20px;
-    border: 2px solid rgba(102, 126, 234, 0.2);
-    transition: transform 0.3s ease;
-}
-
-.menu-composition:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
-}
-
-.menu-composition h4 {
-    text-align: center;
-    margin-bottom: 15px;
-    color: #2c3e50;
-    font-size: 1.2em;
-    padding: 10px;
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 8px;
-}
-
-.menu-items-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.menu-item-fixed {
-    padding: 12px 15px;
-    border-radius: 8px;
-    text-align: center;
-    font-weight: 500;
-    position: relative;
-    transition: all 0.3s ease;
-}
-
-.menu-item-fixed.cocktail {
-    background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
-    color: #8b1538;
-    border: 2px solid rgba(255, 154, 158, 0.5);
-}
-
-.menu-item-fixed.cocktail::before {
-    content: "🍸";
-    margin-right: 8px;
-    font-size: 1.2em;
-}
-
-.menu-item-fixed.dish {
-    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-    color: #2d5016;
-    border: 2px solid rgba(168, 237, 234, 0.5);
-}
-
-.menu-item-fixed.dish::before {
-    content: "🍽️";
-    margin-right: 8px;
-    font-size: 1.2em;
-}
-
-.menu-item-fixed:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-.menu-price-display {
-    margin-top: 15px;
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 8px;
-    text-align: center;
-    font-size: 1.3em;
-    font-weight: bold;
-    color: #2c3e50;
-    border: 2px solid rgba(102, 126, 234, 0.3);
-}
 
 .price-info {
     margin-top: 8px;
@@ -821,38 +737,7 @@ input[readonly] {
     cursor: not-allowed;
 }
 
-/* Simple Menu専用カラー */
-.menu-composition:nth-child(1) {
-    background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 235, 59, 0.1) 100%);
-    border-color: rgba(255, 193, 7, 0.3);
-}
 
-.menu-composition:nth-child(1) h4 {
-    background: linear-gradient(135deg, #ffc107 0%, #ffeb3b 100%);
-    color: #8a6914;
-}
-
-/* Chill Menu専用カラー */
-.menu-composition:nth-child(2) {
-    background: linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(144, 202, 249, 0.1) 100%);
-    border-color: rgba(33, 150, 243, 0.3);
-}
-
-.menu-composition:nth-child(2) h4 {
-    background: linear-gradient(135deg, #2196f3 0%, #90caf9 100%);
-    color: #0d47a1;
-}
-
-/* Special Menu専用カラー */
-.menu-composition:nth-child(3) {
-    background: linear-gradient(135deg, rgba(156, 39, 176, 0.1) 0%, rgba(233, 30, 99, 0.1) 100%);
-    border-color: rgba(156, 39, 176, 0.3);
-}
-
-.menu-composition:nth-child(3) h4 {
-    background: linear-gradient(135deg, #9c27b0 0%, #e91e63 100%);
-    color: #4a148c;
-}
 
 /* サブタブナビゲーション */
 .sub-nav {
@@ -1003,9 +888,7 @@ input[readonly] {
         grid-template-columns: 1fr;
     }
     
-    .fixed-menus-display {
-        grid-template-columns: 1fr;
-    }
+
     
     .sub-nav {
         flex-direction: column;

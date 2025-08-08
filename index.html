@@ -127,7 +127,7 @@
                         <div class="form-group">
                             <label for="config-price">セット価格 (円):</label>
                             <input type="number" id="config-price" value="25000" readonly>
-                            <div class="price-info">※ 日替わりメニューは固定価格 ¥25,000 です</div>
+                            <div class="price-info" id="daily-menu-price-info">※ 価格はコース管理で設定された値が自動反映されます</div>
                         </div>
                         <button type="submit" class="btn btn-primary">日替わりメニュー設定</button>
                     </form>
@@ -189,41 +189,6 @@
                     <p>Simple, Chill, Special メニュー提供時に記入</p>
                 </div>
 
-                <!-- その他メニュー構成表示 -->
-                <div class="card">
-                    <h3>📋 その他メニュー構成</h3>
-                    <div class="fixed-menus-display">
-                        <div class="menu-composition">
-                            <h4>🌴 Simple Menu</h4>
-                            <div class="menu-items-list">
-                                <div class="menu-item-fixed cocktail">Tropic Whisper</div>
-                                <div class="menu-item-fixed dish">Night Vegigratin</div>
-                                <div class="menu-item-fixed cocktail">Noir Berry</div>
-                            </div>
-                            <div class="menu-price-display">¥30,000</div>
-                        </div>
-                        
-                        <div class="menu-composition">
-                            <h4>🧊 Chill Menu</h4>
-                            <div class="menu-items-list">
-                                <div class="menu-item-fixed cocktail">Noir Berry</div>
-                                <div class="menu-item-fixed dish">Night Vegigratin</div>
-                                <div class="menu-item-fixed cocktail">Scarlet Kiss</div>
-                            </div>
-                            <div class="menu-price-display">¥40,000</div>
-                        </div>
-                        
-                        <div class="menu-composition">
-                            <h4>✨ Special Menu</h4>
-                            <div class="menu-items-list">
-                                <div class="menu-item-fixed cocktail">Rouge Oriental</div>
-                                <div class="menu-item-fixed dish">Five Colours Plate</div>
-                                <div class="menu-item-fixed cocktail">Tropic Whisper</div>
-                            </div>
-                            <div class="menu-price-display">¥50,000</div>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- 売上記録フォーム -->
                 <div class="card">
@@ -590,18 +555,36 @@
                                         <label>1品目:</label>
                                         <select id="course-product-1" onchange="rushLounge.updateCourseCalculation()">
                                             <option value="">商品を選択してください</option>
+                                            <optgroup label="登録商品">
+                                                <!-- 登録済み商品がここに動的に追加されます -->
+                                            </optgroup>
+                                            <optgroup label="日替わりメニュー">
+                                                <option value="daily-menu">日替わりメニュー（設定日の商品構成）</option>
+                                            </optgroup>
                                         </select>
                                     </div>
                                     <div class="product-selection-item">
                                         <label>2品目:</label>
                                         <select id="course-product-2" onchange="rushLounge.updateCourseCalculation()">
                                             <option value="">商品を選択してください</option>
+                                            <optgroup label="登録商品">
+                                                <!-- 登録済み商品がここに動的に追加されます -->
+                                            </optgroup>
+                                            <optgroup label="日替わりメニュー">
+                                                <option value="daily-menu">日替わりメニュー（設定日の商品構成）</option>
+                                            </optgroup>
                                         </select>
                                     </div>
                                     <div class="product-selection-item">
                                         <label>3品目:</label>
                                         <select id="course-product-3" onchange="rushLounge.updateCourseCalculation()">
                                             <option value="">商品を選択してください</option>
+                                            <optgroup label="登録商品">
+                                                <!-- 登録済み商品がここに動的に追加されます -->
+                                            </optgroup>
+                                            <optgroup label="日替わりメニュー">
+                                                <option value="daily-menu">日替わりメニュー（設定日の商品構成）</option>
+                                            </optgroup>
                                         </select>
                                     </div>
                                 </div>
@@ -1332,5 +1315,19 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     
     <script src="script.js"></script>
+    
+    <!-- 
+    バージョン更新記録用コマンド（ブラウザコンソールで実行）:
+    recordUpdate("v1.2.1", "patch", "その他メニュー構成セクションの削除", [
+        "その他メニュータブからメニュー構成表示セクションを削除",
+        "関連するJavaScript関数とCSS スタイルを削除",
+        "UIの簡素化とパフォーマンスの向上"
+    ]);
+    
+    デバッグ用コマンド（問題が発生した場合にコンソールで実行）:
+    rushLounge.updateAllDisplays(); // 全表示を強制更新
+    rushLounge.updateDailyMenuPriceDisplay(); // 日替わりメニュー価格を強制更新
+    rushLounge.getDailyMenuPrice(); // 現在の日替わりメニュー価格を確認
+    -->
 </body>
 </html> 
